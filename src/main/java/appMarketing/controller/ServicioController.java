@@ -86,7 +86,12 @@ public class ServicioController {
     
     @ModelAttribute("equipos")
     public List<Equipo> cargarEquipos() {
-        return equipoService.listarTodos();
+        try {
+            List<Equipo> equipos = equipoService.listarTodos();
+            return equipos != null ? equipos : java.util.Collections.emptyList();
+        } catch (Exception e) {
+            return java.util.Collections.emptyList();
+        }
     }
     @GetMapping("/eliminar/{id}")
     public String eliminarServicio(@PathVariable Long id) {
