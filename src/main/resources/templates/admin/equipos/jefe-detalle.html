@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{complementoPagina/header :: head}">
+    <title>Jefe de Equipo - Marketing Pro</title>
+</head>
+<body>
+    <div th:replace="~{complementoPagina/header :: header}"></div>
+    
+    <div class="container-fluid">
+        <div class="row">
+            <div th:replace="~{complementoPagina/sidebar :: sidebar}"></div>
+            
+            <main class="main-content col-md-10 p-4">
+                <div class="mb-3">
+                    <a th:href="@{/admin/equipos}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Volver a Equipos
+                    </a>
+                </div>
+                
+                <h2 class="fw-bold mb-4">👤 Gestión de Jefe de Equipo</h2>
+                
+                <!-- Información del Jefe -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom py-3">
+                        <h5 class="mb-0 fw-bold">Información del Jefe</h5>
+                    </div>
+                    <div class="card-body" th:if="${jefe}">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-2"><strong><i class="bi bi-person me-2"></i>Nombre:</strong> <span th:text="${jefe.usuario.nombreCompleto}">Nombre</span></p>
+                                <p class="mb-2"><strong><i class="bi bi-person-badge me-2"></i>Usuario:</strong> <span th:text="${jefe.usuario.username}">User</span></p>
+                                <p class="mb-2"><strong><i class="bi bi-envelope me-2"></i>Email:</strong> <span th:text="${jefe.usuario.email}">Email</span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-2"><strong><i class="bi bi-telephone me-2"></i>Teléfono:</strong> <span th:text="${jefe.telefono}">Tel</span></p>
+                                <p class="mb-0"><strong><i class="bi bi-star me-2"></i>Especialidad:</strong> <span th:text="${jefe.especialidad}">Esp</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Acciones -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-bottom py-3">
+                        <h5 class="mb-0 fw-bold">⚡ Acciones Rápidas</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <!-- Cambiar Jefe Asignado -->
+                            <div class="col-md-12">
+                                <a th:href="@{/admin/equipos/{id}/asignar-jefe(id=${equipoId})}" class="btn btn-warning w-100">
+                                    <i class="bi bi-arrow-repeat me-2"></i>Cambiar Jefe
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

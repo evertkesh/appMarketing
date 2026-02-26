@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Marketing Pro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    
+    <style>
+        body {
+            background: linear-gradient(-45deg, #0f172a, #1e293b, #334155);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            min-height: 100vh;
+        }
+
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .form-control:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25);
+        }
+    </style>
+</head>
+<body class="d-flex align-items-center py-4">
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-12 col-sm-10 col-md-8 col-lg-5 col-xl-4">
+            
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="card-body p-4 p-sm-5">
+                    
+                    <div class="text-center mb-5">
+                        <div class="d-inline-block bg-primary bg-opacity-10 p-3 rounded-circle mb-3">
+                            <i class="bi bi-bar-chart-fill text-primary fs-1"></i>
+                        </div>
+                        <h2 class="fw-bold text-dark">Marketing Agency</h2>
+                        <p class="text-secondary small">Panel de Administración</p>
+                    </div>
+
+                    <!-- Mensajes de error -->
+                    <div th:if="${error}" class="alert alert-danger d-flex align-items-center border-0 rounded-3 mb-4" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <div class="small" th:text="${error}">Error</div>
+                    </div>
+
+                    <!-- Mensaje de logout -->
+                    <div th:if="${mensaje}" class="alert alert-info d-flex align-items-center border-0 rounded-3 mb-4" role="alert">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        <div class="small" th:text="${mensaje}">Información</div>
+                    </div>
+
+                    <!-- Mensaje de registro exitoso -->
+                    <div th:if="${registroExito}" class="alert alert-success d-flex align-items-center border-0 rounded-3 mb-4" role="alert">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        <div class="small">¡Registro exitoso! Ahora puedes ingresar.</div>
+                    </div>
+
+                    <!-- Mensaje de error en registro -->
+                    <div th:if="${registroError}" class="alert alert-danger d-flex align-items-center border-0 rounded-3 mb-4" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <div class="small" th:text="${registroError}">Error</div>
+                    </div>
+
+                    <!-- Formulario de login -->
+                    <form method="post" action="/login">
+                        
+                        <div class="form-floating mb-3">
+                            <input type="text" name="username" class="form-control bg-light border-0" id="userInput" placeholder="usuario" required autofocus>
+                            <label for="userInput" class="text-secondary">
+                                <i class="bi bi-person me-1"></i> Usuario
+                            </label>
+                        </div>
+
+                        <div class="form-floating mb-4">
+                            <input type="password" name="password" class="form-control bg-light border-0" id="passInput" placeholder="Contraseña" required>
+                            <label for="passInput" class="text-secondary">
+                                <i class="bi bi-lock me-1"></i> Contraseña
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 py-3 rounded-3 fw-bold shadow-sm">
+                            INGRESAR <i class="bi bi-box-arrow-in-right ms-2"></i>
+                        </button>
+
+                    </form>
+                </div>
+                
+                <div class="card-footer bg-light border-0 py-3 text-center">
+                    <p class="mb-0 small text-secondary">
+                        ¿No tienes cuenta? <a href="#" class="text-primary fw-bold text-decoration-none" data-bs-toggle="modal" data-bs-target="#registroModal">Crear cuenta</a>
+                    </p>
+                </div>
+            </div>
+
+            <p class="text-center text-white-50 mt-4 small">
+                &copy; 2026 Marketing Agency &middot; v1.0
+            </p>
+
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Registro -->
+<div class="modal fade" id="registroModal" tabindex="-1" aria-labelledby="registroModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-dark" id="registroModalLabel">
+                    <i class="bi bi-person-plus-fill text-primary me-2"></i> Crear Cuenta
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pt-2">
+                <form method="post" action="/register" id="registroForm">
+                    
+                    <div class="form-floating mb-3">
+                        <input type="text" name="username" class="form-control bg-light border-0" id="regUsername" placeholder="usuario" required>
+                        <label for="regUsername" class="text-secondary">
+                            <i class="bi bi-person me-1"></i> Usuario
+                        </label>
+                    </div>
+
+                    <div class="form-floating mb-3">
+                        <input type="text" name="nombreCompleto" class="form-control bg-light border-0" id="regNombre" placeholder="Nombre Completo" required>
+                        <label for="regNombre" class="text-secondary">
+                            <i class="bi bi-person-badge me-1"></i> Nombre Completo
+                        </label>
+                    </div>
+
+                    <div class="form-floating mb-3">
+                        <input type="email" name="email" class="form-control bg-light border-0" id="regEmail" placeholder="email@ejemplo.com" required>
+                        <label for="regEmail" class="text-secondary">
+                            <i class="bi bi-envelope me-1"></i> Email
+                        </label>
+                    </div>
+
+                    <div class="form-floating mb-3">
+                        <input type="password" name="password" class="form-control bg-light border-0" id="regPassword" placeholder="Contraseña" required minlength="6">
+                        <label for="regPassword" class="text-secondary">
+                            <i class="bi bi-lock me-1"></i> Contraseña
+                        </label>
+                        <small class="text-muted d-block mt-1">Mínimo 6 caracteres</small>
+                    </div>
+
+                    <div class="form-floating mb-4">
+                        <input type="password" name="confirmPassword" class="form-control bg-light border-0" id="regConfirmPassword" placeholder="Confirmar Contraseña" required minlength="6">
+                        <label for="regConfirmPassword" class="text-secondary">
+                            <i class="bi bi-lock-check me-1"></i> Confirmar Contraseña
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-3 rounded-3 fw-bold shadow-sm">
+                        CREAR CUENTA <i class="bi bi-check-lg ms-2"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.getElementById('registroForm').addEventListener('submit', function(e) {
+        const password = document.getElementById('regPassword').value;
+        const confirmPassword = document.getElementById('regConfirmPassword').value;
+        
+        if (password !== confirmPassword) {
+            e.preventDefault();
+            alert('Las contraseñas no coinciden');
+            return false;
+        }
+    });
+</script>
+
+</body>
+</html>
