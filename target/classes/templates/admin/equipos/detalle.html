@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{complementoPagina/header :: head}">
+    <title>Detalle Equipo - Marketing Pro</title>
+</head>
+<body>
+    <div th:replace="~{complementoPagina/header :: header}"></div>
+    
+    <div class="container-fluid">
+        <div class="row">
+            <div th:replace="~{complementoPagina/sidebar :: sidebar}"></div>
+            
+            <main class="main-content col-md-10 p-4">
+                <div class="mb-3">
+                    <a th:href="@{/admin/equipos}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Volver
+                    </a>
+                </div>
+                
+                <h2 class="fw-bold mb-2" th:text="${equipo.nombre}">Equipo</h2>
+                <p class="text-muted mb-4" th:text="${equipo.descripcion}">Descripción</p>
+                
+                <!-- Jefe de Equipo -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3">
+                        <h5 class="mb-0 fw-bold"><i class="bi bi-person-fill me-2"></i>Jefe de Equipo</h5>
+                        
+                        <!-- Solo muestra el botón si NO hay jefe asignado -->
+                        <a th:unless="${equipo.jefeEquipo}"
+                           th:href="@{/admin/equipos/{id}/asignar-jefe(id=${equipo.id})}"
+                           class="btn btn-success btn-sm">
+                           <i class="bi bi-plus-lg"></i> Asignar Jefe
+                        </a>
+                        
+                        <!-- Si hay jefe, muestra botón para cambiarlo -->
+                        <a th:if="${equipo.jefeEquipo}"
+                           th:href="@{/admin/equipos/{id}/asignar-jefe(id=${equipo.id})}"
+                           class="btn btn-warning btn-sm">
+                           <i class="bi bi-arrow-repeat"></i> Cambiar Jefe
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        <!-- Si hay jefe, muestra info y link clickable -->
+                        <div th:if="${equipo.jefeEquipo}" class="row">
+                            <div class="col-md-6">
+                                <p>
+                                    <strong><i class="bi bi-person me-2"></i>Nombre:</strong> 
+                                    <!-- Link al detalle del jefe -->
+                                    <a th:href="@{/admin/equipos/jefe/{id}(id=${equipo.jefeEquipo.id})}" 
+                                       class="text-decoration-none fw-bold text-primary">
+                                        <span th:text="${equipo.jefeEquipo.usuario.nombreCompleto}">Nombre</span>
+                                    </a>
+                                </p>
+                                <p><strong><i class="bi bi-envelope me-2"></i>Email:</strong> <span th:text="${equipo.jefeEquipo.usuario.email}">Email</span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong><i class="bi bi-telephone me-2"></i>Teléfono:</strong> <span th:text="${equipo.jefeEquipo.telefono}">Tel</span></p>
+                                <p><strong><i class="bi bi-star me-2"></i>Especialidad:</strong> <span th:text="${equipo.jefeEquipo.especialidad}">Esp</span></p>
+                            </div>
+                        </div>
+                        
+                        <!-- Si no hay jefe -->
+                        <div th:unless="${equipo.jefeEquipo}" class="text-center text-muted py-4">
+                            <i class="bi bi-person-x display-4"></i>
+                            <p class="mt-2">No hay jefe asignado</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Integrantes -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3">
+                        <h5 class="mb-0 fw-bold"><i class="bi bi-people-fill me-2"></i>Integrantes</h5>
+                        <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalAgregar">
+                            <i class="bi bi-plus-lg"></i> Agregar Integrante
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Nombre</th>
+                                        <th>Función</th>
+                                        <th>Email</th>
+                                        <th>Teléfono</th>
+                                        <th>Fecha Ingreso</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="integrante : ${integrantes}">
+                                        <td class="fw-semibold" th:text="${integrante.nombreCompleto}">Nombre</td>
+                                        <td>
+                                            <span class="badge bg-info" th:text="${integrante.funcion}">Función</span>
+                                        </td>
+                                        <td th:text="${integrante.email}">Email</td>
+                                        <td th:text="${integrante.telefono}">Tel</td>
+                                        <td th:text="${integrante.fechaIngreso}">Fecha</td>
+                                        <td>
+                                            <button class="btn btn-outline-danger btn-sm btn-eliminar"
+                                                    th:data-id="${integrante.id}"
+                                                    th:data-nombre="${integrante.nombreCompleto}"
+                                                    onclick="eliminarIntegrante(this.getAttribute('data-id'), this.getAttribute('data-nombre'))">
+                                                   <i class="bi bi-trash"></i> Eliminar
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <!-- Modal Agregar Integrante -->
+    <div class="modal fade" id="modalAgregar" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Agregar Nuevo Integrante</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form th:action="@{/admin/equipos/integrantes/agregar}" method="post">
+                    <input type="hidden" name="equipoId" th:value="${equipo.id}">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Nombre Completo</label>
+                            <input type="text" name="nombreCompleto" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Email</label>
+                            <input type="email" name="email" class="form-control">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Teléfono</label>
+                            <input type="text" name="telefono" class="form-control">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Función</label>
+                            <select name="funcion" class="form-select" required>
+                                <option value="Diseñador Gráfico">Diseñador Gráfico</option>
+                                <option value="Community Manager">Community Manager</option>
+                                <option value="Redactor de Contenidos">Redactor de Contenidos</option>
+                                <option value="Especialista SEO">Especialista SEO</option>
+                                <option value="Desarrollador Web">Desarrollador Web</option>
+                                <option value="Analista de Datos">Analista de Datos</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success">Agregar Integrante</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Eliminar Integrante -->
+    <div class="modal fade" id="modalEliminar" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="bi bi-exclamation-triangle me-2"></i>Eliminar Integrante</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form th:action="@{/admin/equipos/integrantes/eliminar}" method="post">
+                    <input type="hidden" name="id" id="idEliminar">
+                    <input type="hidden" name="equipoId" th:value="${equipo.id}">
+                    <div class="modal-body">
+                        <p>Está por eliminar a: <strong id="nombreEliminar" class="text-danger"></strong></p>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Motivo de Baja</label>
+                            <select name="motivo" class="form-select" required>
+                                <option value="Renuncia voluntaria">Renuncia voluntaria</option>
+                                <option value="Término de contrato">Término de contrato</option>
+                                <option value="Despido">Despido</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Confirmar Eliminación</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function eliminarIntegrante(id, nombre) {
+            document.getElementById('idEliminar').value = id;
+            document.getElementById('nombreEliminar').textContent = nombre;
+            new bootstrap.Modal(document.getElementById('modalEliminar')).show();
+        }
+    </script>
+</body>
+</html>

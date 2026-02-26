@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+    <aside th:fragment="sidebar" class="sidebar col-md-2 p-0 shadow">
+        <div class="py-4 px-3 text-white-50 small fw-bold text-uppercase">Navegación</div>
+        <nav class="nav flex-column">
+            
+            <a th:href="@{/admin/menu-principal}" 
+               class="nav-link" 
+               th:classappend="${active == 'dashboard'} ? 'active' : ''">
+               <i class="bi bi-house-fill"></i> Menu Principal
+            </a>
+
+            <a th:href="@{/admin/equipos}" 
+               class="nav-link" 
+               th:classappend="${active == 'equipos'} ? 'active' : ''">
+               <i class="bi bi-people"></i> Equipos
+            </a>
+            
+            <a th:href="@{/admin/servicios}" 
+               class="nav-link" 
+               th:classappend="${active == 'servicios'} ? 'active' : ''">
+                <i class="bi bi-tools"></i> Servicios
+            </a>
+            
+            <a th:href="@{/admin/reuniones}" 
+               class="nav-link" 
+               th:classappend="${active == 'reuniones'} ? 'active' : ''">
+                <i class="bi bi-calendar-event"></i> Reuniones
+            </a>
+
+            <div class="border-top border-secondary my-2 mx-3"></div>
+            
+            <a th:href="@{/admin/control-personal}" 
+               class="nav-link" 
+               th:classappend="${active == 'control-personal'} ? 'active' : ''">
+                <i class="bi bi-clock-history"></i> Control de Personal
+            </a>
+            
+            <a th:href="@{/admin/reportes/diario}" 
+               class="nav-link" 
+               th:classappend="${active == 'reportes'} ? 'active' : ''">
+                <i class="bi bi-file-earmark-bar-graph"></i> Reportes Diarios
+            </a>
+            
+        </nav>
+    </aside>
+</body>
+</html>
