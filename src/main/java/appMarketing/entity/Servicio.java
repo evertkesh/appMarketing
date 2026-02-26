@@ -35,11 +35,15 @@ public class Servicio {
     private BigDecimal precioBase;
 
     @Enumerated(EnumType.STRING)
-    private EstadoServicio estado; // PENDIENTE, EN_PROCESO, COMPLETADO, CANCELADO
+    private EstadoServicio estado = EstadoServicio.PENDIENTE; // Default
 
     @ManyToOne
     @JoinColumn(name = "equipo_id")
     private Equipo equipoAsignado;
+    
+    public Servicio() {
+        this.equipoAsignado = new Equipo(); // Inicializar para evitar NullPointerException
+    }
 
     public enum EstadoServicio {
         PENDIENTE, EN_PROCESO, COMPLETADO, CANCELADO

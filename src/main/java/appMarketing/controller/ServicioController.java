@@ -44,9 +44,25 @@ public class ServicioController {
     @GetMapping("/nuevo")
     public String nuevoServicioForm(Model model) {
         try {
-            model.addAttribute("servicio", new Servicio());
-            model.addAttribute("equipos", equipoService.listarTodos() != null ? equipoService.listarTodos() : java.util.Collections.emptyList());
+            Servicio servicio = new Servicio();
+            model.addAttribute("servicio", servicio);
+            
+            List<Equipo> equipos = equipoService.listarTodos();
+            model.addAttribute("equipos", equipos != null ? equipos : java.util.Collections.emptyList());
+            
+            System.out.println("DEBUG - Formulario nuevo servicio cargado exitosamente");
+            System.out.println("DEBUG - Cantidad de equipos: " + (equipos != null ? equipos.size() : 0));
         } catch (Exception e) {
+            System.err.println("ERROR en nuevoServicioForm: " + e.getMessage());
+            e.printStackTrace();
+            
+            // Asegurar que siempre haya atributos necesarios
+            if (!model.containsAttribute("servicio")) {
+                model.addAttribute("servicio", new Servicio());
+            }
+            if (!model.containsAttribute("equipos")) {
+                model.addAttribute("equipos", java.util.Collections.emptyList());
+            }
             model.addAttribute("error", "Error al cargar formulario: " + e.getMessage());
         }
         return "admin/servicios/form";
