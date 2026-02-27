@@ -1,6 +1,8 @@
 package appMarketing.controller;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,6 +29,8 @@ import jakarta.servlet.http.HttpSession;
 @Controller
 @RequestMapping("/admin")
 public class DashboardController {
+
+    private static final ZoneId PERU_ZONE = ZoneId.of("America/Lima");
 
     @Autowired 
     private EquipoService equipoService;
@@ -89,13 +93,31 @@ public class DashboardController {
     
 
     @GetMapping("/control-personal")
-    public String controlPersonal(Model model, HttpSession session) {
+    public String controlPersonal(Model model, HttpSession session,
+                                 @org.springframework.web.bind.annotation.RequestParam(required = false) String fecha) {
         try {
+            // Usar fecha de Perú o fecha filtrada
+            ZonedDateTime ahoraEnPeru = ZonedDateTime.now(PERU_ZONE);
+            LocalDate fechaFiltro;
+            
+            if (fecha != null && !fecha.isEmpty()) {
+                try {
+                    fechaFiltro = LocalDate.parse(fecha);
+                } catch (Exception e) {
+                    fechaFiltro = ahoraEnPeru.toLocalDate();
+                }
+            } else {
+                fechaFiltro = ahoraEnPeru.toLocalDate();
+            }
+            
+            LocalDate hoy = ahoraEnPeru.toLocalDate();
+            
             model.addAttribute("active", "control-personal");
-            model.addAttribute("historialHoy", asistenciaService.obtenerHistorialHoy());
-            model.addAttribute("personalPresente", asistenciaService.contarPersonalPresente());
-            model.addAttribute("totalRegistrosHoy", asistenciaService.contarTotalRegistrosHoy());
-            model.addAttribute("asistenciasHoy", asistenciaService.listarPorFecha(LocalDate.now()));
+            model.addAttribute("fechaSeleccionada", fechaFiltro.toString());
+            model.addAttribute("historialHoy", asistenciaService.obtenerHistorialPorFecha(fechaFiltro));
+            model.addAttribute("personalPresente", asistenciaService.contarPersonalPresentePorFecha(fechaFiltro));
+            model.addAttribute("totalRegistrosHoy", asistenciaService.contarTotalRegistrosPorFecha(fechaFiltro));
+            model.addAttribute("asistenciasHoy", asistenciaService.listarPorFecha(fechaFiltro));
             
            
             Usuario usuario = (Usuario) session.getAttribute("usuario");
@@ -103,7 +125,7 @@ public class DashboardController {
                 Optional<Integrante> integranteOpt = integranteRepository.findByEmail(usuario.getEmail());
                 if (integranteOpt.isPresent()) {
                     Optional<RegistroAsistencia> registroHoy = registroAsistenciaRepository
-                        .findRegistroPorIntegranteYFecha(integranteOpt.get().getId(), LocalDate.now());
+                        .findRegistroPorIntegranteYFecha(integranteOpt.get().getId(), hoy);
                     if (registroHoy.isPresent() && registroHoy.get().getHoraEntrada() != null 
                             && registroHoy.get().getHoraSalida() == null) {
                         model.addAttribute("asistenciaActiva", registroHoy.get());

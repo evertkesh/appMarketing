@@ -2,6 +2,8 @@ package appMarketing.ServiceImpl;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,13 +16,17 @@ import appMarketing.repository.ReporteDiarioRepository;
 @Service
 public class ReporteDiarioServiceImpl implements ReporteDIarioService {
 
+    private static final ZoneId PERU_ZONE = ZoneId.of("America/Lima");
+
     @Autowired
     private ReporteDiarioRepository reporteRepository;
 
     @Override
     public ReporteDiario crearReporte(ReporteDiario reporte) {
         if (reporte.getFecha() == null) {
-            reporte.setFecha(LocalDate.now());
+            // Usar fecha de Perú
+            ZonedDateTime ahoraEnPeru = ZonedDateTime.now(PERU_ZONE);
+            reporte.setFecha(ahoraEnPeru.toLocalDate());
         }
 
         // Calcular total acumulado

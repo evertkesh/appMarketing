@@ -19,7 +19,13 @@ public interface RegistroAsistenciaService {
     // Nuevos métodos según requerimientos
     List<RegistroAsistenciaDTO> obtenerHistorialHoy();
     
+    List<RegistroAsistenciaDTO> obtenerHistorialPorFecha(LocalDate fecha);
+    
     Long contarPersonalPresente();
     
     Long contarTotalRegistrosHoy();
+    
+    Long contarPersonalPresentePorFecha(LocalDate fecha);
+    
+    Long contarTotalRegistrosPorFecha(LocalDate fecha);
 }

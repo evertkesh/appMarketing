@@ -2,6 +2,8 @@ package appMarketing.controller;
 
 import java.io.InputStream;
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +33,8 @@ import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
 @RequestMapping("/api/reportes")
 public class ReportePDFController {
 
+    private static final ZoneId PERU_ZONE = ZoneId.of("America/Lima");
+
     @Autowired
     private ReporteDIarioService reporteDiarioService;
     
@@ -42,49 +46,25 @@ public class ReportePDFController {
             @RequestParam(required = false) String fecha) {
 
         try {
-            LocalDate fechaReporte =
-                    (fecha != null && !fecha.isEmpty())
-                            ? LocalDate.parse(fecha)
-                            : LocalDate.now();
+            // Usar fecha de Perú si no se especifica
+            LocalDate fechaReporte;
+            if (fecha != null && !fecha.isEmpty()) {
+                fechaReporte = LocalDate.parse(fecha);
+            } else {
+                ZonedDateTime ahoraEnPeru = ZonedDateTime.now(PERU_ZONE);
+                fechaReporte = ahoraEnPeru.toLocalDate();
+            }
 
-            System.out.println("=== GENERANDO REPORTE PARA FECHA: " + fechaReporte + " ===");
+            System.out.println("=== GENERANDO REPORTE PARA FECHA: " + fechaReporte + " (Zona horaria: Peru) ===");
             
-            // Obtener servicios completados de la fecha especificada
-            var servicios = servicioService.listarTodos();
-            System.out.println("Servicios totales encontrados: " + servicios.size());
+            // Primero intentar obtener reportes diarios de la fecha
+            var reportesDiarios = reporteDiarioService.listarPorFecha(fechaReporte);
+            System.out.println("Reportes diarios encontrados para " + fechaReporte + ": " + reportesDiarios.size());
             
-            // Filtrar servicios completados que tengan la fecha deseada
-            var serviciosFiltrados = servicios.stream()
-                    .filter(s -> s.getFechaCreacion() != null 
-                            && s.getFechaCreacion().toLocalDate().equals(fechaReporte)
-                            && s.getEstado() == Servicio.EstadoServicio.COMPLETADO)
-                    .toList();
-            
-            System.out.println("Servicios completados en la fecha: " + serviciosFiltrados.size());
-
-            // Si no hay servicios, también intentar con reportes diarios
-            if (serviciosFiltrados.isEmpty()) {
-                System.out.println("Buscando en reportes_diarios para fecha: " + fechaReporte);
-                var reportes = reporteDiarioService.listarPorFecha(fechaReporte);
-                System.out.println("Reportes encontrados: " + reportes.size());
-                
-                if (reportes.isEmpty()) {
-                    System.out.println("Sin datos para la fecha: " + fechaReporte);
-                    // Generar PDF vacío
-                    List<ReportePDFDTO> datosDTO = new java.util.ArrayList<>();
-                    byte[] pdf = generarPDF(datosDTO);
-                    
-                    HttpHeaders headers = new HttpHeaders();
-                    headers.setContentType(MediaType.APPLICATION_PDF);
-                    headers.setContentDispositionFormData(
-                            "attachment",
-                            "Reporte_Ganancias_" + fechaReporte + ".pdf"
-                    );
-                    return ResponseEntity.ok().headers(headers).body(pdf);
-                }
-                
-                List<ReportePDFDTO> datosDTO = mapearDatosDesdeReportes(reportes);
-                System.out.println("DTOs creados desde reportes: " + datosDTO.size());
+            if (!reportesDiarios.isEmpty()) {
+                // Usar reportes diarios si existen
+                List<ReportePDFDTO> datosDTO = mapearDatosDesdeReportes(reportesDiarios);
+                System.out.println("DTOs creados desde reportes diarios: " + datosDTO.size());
                 
                 byte[] pdf = generarPDF(datosDTO);
                 System.out.println("PDF generado exitosamente. Tamaño: " + pdf.length + " bytes");
@@ -96,9 +76,34 @@ public class ReportePDFController {
                         "Reporte_Ganancias_" + fechaReporte + ".pdf"
                 );
 
-                return ResponseEntity.ok()
-                        .headers(headers)
-                        .body(pdf);
+                return ResponseEntity.ok().headers(headers).body(pdf);
+            }
+            
+            // Si no hay reportes diarios, buscar en servicios
+            var servicios = servicioService.listarTodos();
+            System.out.println("Servicios totales encontrados: " + servicios.size());
+            
+            // Filtrar servicios por fecha (sin filtrar por estado - mostrar todos)
+            var serviciosFiltrados = servicios.stream()
+                    .filter(s -> s.getFechaCreacion() != null 
+                            && s.getFechaCreacion().toLocalDate().equals(fechaReporte))
+                    .toList();
+            
+            System.out.println("Servicios encontrados para la fecha " + fechaReporte + ": " + serviciosFiltrados.size());
+
+            if (serviciosFiltrados.isEmpty()) {
+                System.out.println("Sin datos para la fecha: " + fechaReporte);
+                // Generar PDF vacío
+                List<ReportePDFDTO> datosDTO = new java.util.ArrayList<>();
+                byte[] pdf = generarPDF(datosDTO);
+                
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_PDF);
+                headers.setContentDispositionFormData(
+                        "attachment",
+                        "Reporte_Ganancias_" + fechaReporte + ".pdf"
+                );
+                return ResponseEntity.ok().headers(headers).body(pdf);
             }
 
             // Mapear servicios a DTO
@@ -131,50 +136,38 @@ public class ReportePDFController {
         try {
             System.out.println("=== GENERANDO REPORTE TOTAL (TODOS LOS REGISTROS) ===");
             
-            // Obtener TODOS los reportes diarios
+            // Obtener TODOS los reportes diarios sin filtrar por fecha
             var todosLosReportes = reporteDiarioService.listarTodos();
-            System.out.println("Reportes diarios totales: " + todosLosReportes.size());
+            System.out.println("Reportes diarios totales en BD: " + todosLosReportes.size());
             
-            // Si no hay reportes diarios, obtener todos los servicios completados
-            if (todosLosReportes.isEmpty()) {
-                System.out.println("No hay reportes diarios, obteniendo servicios completados");
-                var servicios = servicioService.listarTodos();
-                var serviciosCompletados = servicios.stream()
-                        .filter(s -> s.getEstado() == Servicio.EstadoServicio.COMPLETADO)
-                        .toList();
-                
-                System.out.println("Servicios completados totales: " + serviciosCompletados.size());
-                
-                if (serviciosCompletados.isEmpty()) {
-                    System.out.println("Sin datos para generar reporte total");
-                    List<ReportePDFDTO> datosDTO = new java.util.ArrayList<>();
-                    byte[] pdf = generarPDF(datosDTO);
-                    
-                    HttpHeaders headers = new HttpHeaders();
-                    headers.setContentType(MediaType.APPLICATION_PDF);
-                    headers.setContentDispositionFormData("attachment", "Reporte_Total_Ganancias.pdf");
-                    return ResponseEntity.ok().headers(headers).body(pdf);
-                }
-                
-                List<ReportePDFDTO> datosDTO = mapearDatosDesdeServicios(serviciosCompletados);
-                System.out.println("DTOs creados desde servicios: " + datosDTO.size());
-                
-                byte[] pdf = generarPDF(datosDTO);
-                System.out.println("PDF generado exitosamente. Tamaño: " + pdf.length + " bytes");
-
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_PDF);
-                headers.setContentDispositionFormData("attachment", "Reporte_Total_Ganancias.pdf");
-
-                return ResponseEntity.ok().headers(headers).body(pdf);
+            // Obtener TODOS los servicios (sin filtrar por estado ni fecha)
+            var todosLosServicios = servicioService.listarTodos();
+            System.out.println("Servicios totales en BD: " + todosLosServicios.size());
+            
+            List<ReportePDFDTO> datosDTO = new java.util.ArrayList<>();
+            
+            // Agregar todos los reportes diarios
+            if (!todosLosReportes.isEmpty()) {
+                var dtosReportes = mapearDatosDesdeReportes(todosLosReportes);
+                datosDTO.addAll(dtosReportes);
+                System.out.println("DTOs agregados desde reportes diarios: " + dtosReportes.size());
             }
             
-            // Mapear todos los reportes a DTO
-            List<ReportePDFDTO> datosDTO = mapearDatosDesdeReportes(todosLosReportes);
-            System.out.println("DTOs creados desde reportes: " + datosDTO.size());
+            // Agregar todos los servicios que no estén ya en reportes diarios
+            if (!todosLosServicios.isEmpty()) {
+                var dtosServicios = mapearDatosDesdeServicios(todosLosServicios);
+                datosDTO.addAll(dtosServicios);
+                System.out.println("DTOs agregados desde servicios: " + dtosServicios.size());
+            }
+            
+            System.out.println("Total de DTOs para el PDF: " + datosDTO.size());
+            
+            if (datosDTO.isEmpty()) {
+                System.out.println("⚠️ ADVERTENCIA: No hay datos para generar reporte total");
+            }
             
             byte[] pdf = generarPDF(datosDTO);
-            System.out.println("PDF generado exitosamente. Tamaño: " + pdf.length + " bytes");
+            System.out.println("✅ PDF generado exitosamente. Tamaño: " + pdf.length + " bytes");
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_PDF);

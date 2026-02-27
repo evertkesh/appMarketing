@@ -3,6 +3,8 @@ package appMarketing.ServiceImpl;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -22,6 +24,8 @@ import appMarketing.repository.RegistroAsistenciaRepository;
 @Transactional
 public class RegistroAsistenciaServiceImpl implements RegistroAsistenciaService {
 
+    private static final ZoneId PERU_ZONE = ZoneId.of("America/Lima");
+
     @Autowired
     private RegistroAsistenciaRepository registroRepository;
 
@@ -38,7 +42,10 @@ public class RegistroAsistenciaServiceImpl implements RegistroAsistenciaService 
         Integrante integrante = integranteRepository.findById(integranteId)
             .orElseThrow(() -> new IllegalArgumentException("Integrante no encontrado"));
         
-        LocalDate hoy = LocalDate.now();
+        // Usar fecha y hora de Perú
+        ZonedDateTime ahoraEnPeru = ZonedDateTime.now(PERU_ZONE);
+        LocalDate hoy = ahoraEnPeru.toLocalDate();
+        LocalTime ahora = ahoraEnPeru.toLocalTime();
         
         // Verificar si ya existe registro para hoy
         Optional<RegistroAsistencia> registroExistente = registroRepository
@@ -55,16 +62,11 @@ public class RegistroAsistenciaServiceImpl implements RegistroAsistenciaService 
         RegistroAsistencia registro = new RegistroAsistencia();
         registro.setIntegrante(integrante);
         registro.setFecha(hoy);
-        LocalTime ahora = LocalTime.now();
         registro.setHoraEntrada(ahora);
         
-        // Determinar estado: si entrada es después de 09:00 = TARDANZA, sino PRESENTE
-        LocalTime horaLimite = LocalTime.of(9, 0, 0);
-        if (ahora.isAfter(horaLimite)) {
-            registro.setEstado(RegistroAsistencia.Estado.TARDANZA);
-        } else {
-            registro.setEstado(RegistroAsistencia.Estado.PRESENTE);
-        }
+        // Para trabajo asincrónico, siempre marcar como PRESENTE
+        // Sin importar la hora de entrada (pueden conectarse a cualquier hora)
+        registro.setEstado(RegistroAsistencia.Estado.PRESENTE);
         
         registroRepository.save(registro);
     }
@@ -75,7 +77,10 @@ public class RegistroAsistenciaServiceImpl implements RegistroAsistenciaService 
             throw new IllegalArgumentException("integranteId no puede ser null");
         }
         
-        LocalDate hoy = LocalDate.now();
+        // Usar fecha y hora de Perú
+        ZonedDateTime ahoraEnPeru = ZonedDateTime.now(PERU_ZONE);
+        LocalDate hoy = ahoraEnPeru.toLocalDate();
+        LocalTime horaSalida = ahoraEnPeru.toLocalTime();
         
         // Buscar registro de hoy
         Optional<RegistroAsistencia> registroOpt = registroRepository
@@ -92,7 +97,6 @@ public class RegistroAsistenciaServiceImpl implements RegistroAsistenciaService 
         }
         
         // Registrar salida
-        LocalTime horaSalida = LocalTime.now();
         registro.setHoraSalida(horaSalida);
         
         // El estado (PRESENTE/TARDANZA) ya se definió al registrar la entrada, no se cambia aquí.
@@ -118,7 +122,9 @@ public class RegistroAsistenciaServiceImpl implements RegistroAsistenciaService 
 
     @Override
     public List<RegistroAsistenciaDTO> obtenerHistorialHoy() {
-        LocalDate hoy = LocalDate.now();
+        // Usar fecha de Perú
+        ZonedDateTime ahoraEnPeru = ZonedDateTime.now(PERU_ZONE);
+        LocalDate hoy = ahoraEnPeru.toLocalDate();
         
         List<RegistroAsistencia> registros = registroRepository.obtenerHistorialHoy(hoy);
         
@@ -172,13 +178,90 @@ public class RegistroAsistenciaServiceImpl implements RegistroAsistenciaService 
 
     @Override
     public Long contarPersonalPresente() {
-        LocalDate hoy = LocalDate.now();
+        ZonedDateTime ahoraEnPeru = ZonedDateTime.now(PERU_ZONE);
+        LocalDate hoy = ahoraEnPeru.toLocalDate();
         return registroRepository.contarPersonalPresente(hoy);
     }
 
     @Override
     public Long contarTotalRegistrosHoy() {
-        LocalDate hoy = LocalDate.now();
+        ZonedDateTime ahoraEnPeru = ZonedDateTime.now(PERU_ZONE);
+        LocalDate hoy = ahoraEnPeru.toLocalDate();
         return registroRepository.contarTotalRegistrosHoy(hoy);
+    }
+    
+    @Override
+    public List<RegistroAsistenciaDTO> obtenerHistorialPorFecha(LocalDate fecha) {
+        if (fecha == null) {
+            ZonedDateTime ahoraEnPeru = ZonedDateTime.now(PERU_ZONE);
+            fecha = ahoraEnPeru.toLocalDate();
+        }
+        
+        List<RegistroAsistencia> registros = registroRepository.obtenerHistorialHoy(fecha);
+        
+        return registros.stream()
+            .map(registro -> {
+                RegistroAsistenciaDTO dto = new RegistroAsistenciaDTO();
+                dto.setId(registro.getId());
+                dto.setIntegranteName(registro.getIntegrante() != null ? 
+                    registro.getIntegrante().getNombreCompleto() : "N/A");
+                dto.setHoraEntrada(registro.getHoraEntrada());
+                dto.setHoraSalida(registro.getHoraSalida());
+                dto.setEstado(registro.getEstado() != null ? registro.getEstado().toString() : "N/A");
+                
+                // Formato descriptivo
+                if (registro.getEstado() != null) {
+                    switch (registro.getEstado()) {
+                        case PRESENTE:
+                            dto.setEstadoFormatted("Presente");
+                            break;
+                        case TARDANZA:
+                            dto.setEstadoFormatted("Tardanza");
+                            break;
+                        case AUSENTE:
+                            dto.setEstadoFormatted("Ausente");
+                            break;
+                        default:
+                            dto.setEstadoFormatted("N/A");
+                    }
+                }
+                
+                // Calcular tiempo activo
+                if (registro.getHoraEntrada() != null) {
+                    LocalTime fin = registro.getHoraSalida() != null ? registro.getHoraSalida() : LocalTime.now();
+                    long minutos = Duration.between(registro.getHoraEntrada(), fin).toMinutes();
+                    if (minutos < 0) minutos = 0;
+                    long horas = minutos / 60;
+                    long mins = minutos % 60;
+                    if (horas > 0) {
+                        dto.setTiempoActivo(horas + "h " + mins + "min");
+                    } else {
+                        dto.setTiempoActivo(mins + " min");
+                    }
+                } else {
+                    dto.setTiempoActivo("--");
+                }
+                
+                return dto;
+            })
+            .collect(Collectors.toList());
+    }
+    
+    @Override
+    public Long contarPersonalPresentePorFecha(LocalDate fecha) {
+        if (fecha == null) {
+            ZonedDateTime ahoraEnPeru = ZonedDateTime.now(PERU_ZONE);
+            fecha = ahoraEnPeru.toLocalDate();
+        }
+        return registroRepository.contarPersonalPresente(fecha);
+    }
+    
+    @Override
+    public Long contarTotalRegistrosPorFecha(LocalDate fecha) {
+        if (fecha == null) {
+            ZonedDateTime ahoraEnPeru = ZonedDateTime.now(PERU_ZONE);
+            fecha = ahoraEnPeru.toLocalDate();
+        }
+        return registroRepository.contarTotalRegistrosHoy(fecha);
     }
 }

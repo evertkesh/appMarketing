@@ -88,6 +88,21 @@
                             </ol>
                         </nav>
                     </div>
+                    
+                    <!-- Date Filter Section -->
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="filtrarPorFecha('ayer')">
+                                <i class="bi bi-arrow-left"></i> Ayer
+                            </button>
+                            <button type="button" class="btn btn-sm btn-primary" onclick="filtrarPorFecha('hoy')">
+                                <i class="bi bi-calendar-check"></i> Hoy
+                            </button>
+                        </div>
+                        <input type="date" id="fechaFiltro" class="form-control form-control-sm" 
+                               style="width: auto;" th:value="${fechaSeleccionada}"
+                               onchange="filtrarPorFechaPersonalizada()">
+                    </div>
                 </div>
                 
                 <!-- KPI Cards -->
@@ -175,10 +190,15 @@
                                 </div>
                                 
                                 <!-- Historial de hoy -->
-                                <h6 class="fw-bold text-dark mb-3">Historial de Hoy</h6>
+                                <h6 class="fw-bold text-dark mb-3">
+                                    Historial 
+                                    <span th:if="${fechaSeleccionada != null}" class="text-muted small">
+                                        - <span th:text="${fechaSeleccionada}"></span>
+                                    </span>
+                                </h6>
                                 <div th:if="${#lists.isEmpty(historialHoy)}" class="text-center text-muted py-4">
                                     <i class="bi bi-calendar-x fs-1"></i>
-                                    <p class="mb-0 mt-2">No hay registros de asistencia hoy</p>
+                                    <p class="mb-0 mt-2">No hay registros de asistencia para esta fecha</p>
                                 </div>
                                 <div th:each="registro : ${historialHoy}" class="registro-item">
                                     <div class="d-flex justify-content-between align-items-center">
@@ -237,19 +257,37 @@
                         </div>
                         
                         <!-- Resumen estadísticas -->
-                        <div class="card border-0 shadow-sm bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                            <div class="card-body text-white">
-                                <h6 class="fw-bold mb-3"><i class="bi bi-graph-up me-2"></i>Resumen del Día</h6>
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span>Entrada Temprana:</span>
-                                    <span class="fw-bold badge bg-light text-dark">--:--</span>
+                        <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; overflow: hidden;">
+                            <div class="card-body text-white p-4">
+                                <h6 class="fw-bold mb-4 d-flex align-items-center" style="font-size: 1.1rem;">
+                                    <i class="bi bi-graph-up me-2" style="font-size: 1.3rem;"></i>Resumen del Día
+                                </h6>
+                                
+                                <!-- Entrada Temprana -->
+                                <div class="mb-4 pb-3 border-bottom border-white border-opacity-25">
+                                    <div class="small text-white-50 mb-2" style="font-size: 0.85rem;">Entrada Más Temprana</div>
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <span style="font-size: 1.8rem; font-weight: 700;" id="entradaTemprana">--:--</span>
+                                        <i class="bi bi-arrow-right-circle" style="font-size: 1.5rem; opacity: 0.7;"></i>
+                                    </div>
                                 </div>
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span>Salida Tardía:</span>
-                                    <span class="fw-bold badge bg-light text-dark">--:--</span>
+                                
+                                <!-- Salida Tardía -->
+                                <div class="mb-4">
+                                    <div class="small text-white-50 mb-2" style="font-size: 0.85rem;">Salida Más Tardía</div>
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <span style="font-size: 1.8rem; font-weight: 700;" id="salidaTardia">--:--</span>
+                                        <i class="bi bi-arrow-left-circle" style="font-size: 1.5rem; opacity: 0.7;"></i>
+                                    </div>
                                 </div>
-                                <hr class="border-white opacity-25">
-                                <small class="opacity-75">Estadísticas actualizadas en tiempo real</small>
+                                
+                                <!-- Línea divisora -->
+                                <hr class="border-white opacity-25 my-3">
+                                
+                                <!-- Estadísticas -->
+                                <small class="opacity-75 d-block text-center" style="font-size: 0.8rem;">
+                                    <i class="bi bi-clock-history me-1"></i>Estadísticas actualizadas en tiempo real
+                                </small>
                             </div>
                         </div>
                     </div>
@@ -260,22 +298,66 @@
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Actualizar hora actual
+        // Actualizar hora actual en zona horaria de Perú
         function actualizarHora() {
             const ahora = new Date();
-            const horaStr = ahora.getHours().toString().padStart(2, '0') + ':' + 
-                           ahora.getMinutes().toString().padStart(2, '0') + ':' +
-                           ahora.getSeconds().toString().padStart(2, '0');
+            // Convertir a hora de Perú (UTC-5)
+            const horaPeruUTC = new Date(ahora.toLocaleString('en-US', { timeZone: 'America/Lima' }));
+            const horaStr = horaPeruUTC.getHours().toString().padStart(2, '0') + ':' + 
+                           horaPeruUTC.getMinutes().toString().padStart(2, '0') + ':' +
+                           horaPeruUTC.getSeconds().toString().padStart(2, '0');
             const horaEl = document.getElementById('horaActual');
             if (horaEl) {
                 horaEl.textContent = horaStr;
             }
         }
         
-        // Actualizar fecha actual
+        // Calcular entrada más temprana y salida más tardía
+        function actualizarResumenDia() {
+            const horaEntradaElements = document.querySelectorAll('.hora-entrada');
+            const horaSalidaElements = document.querySelectorAll('.hora-salida');
+            
+            let entradaMinima = null;
+            let salidaMaxima = null;
+            
+            // Buscar entrada más temprana
+            horaEntradaElements.forEach(el => {
+                const texto = el.textContent.trim();
+                const hora = texto.replace(/[^0-9:]/g, ''); // Extrae HH:mm
+                if (hora) {
+                    if (!entradaMinima || hora < entradaMinima) {
+                        entradaMinima = hora;
+                    }
+                }
+            });
+            
+            // Buscar salida más tardía
+            horaSalidaElements.forEach(el => {
+                const texto = el.textContent.trim();
+                const hora = texto.replace(/[^0-9:]/g, ''); // Extrae HH:mm
+                if (hora) {
+                    if (!salidaMaxima || hora > salidaMaxima) {
+                        salidaMaxima = hora;
+                    }
+                }
+            });
+            
+            // Actualizar elementos
+            const entradaEl = document.getElementById('entradaTemprana');
+            const salidaEl = document.getElementById('salidaTardia');
+            
+            if (entradaEl) {
+                entradaEl.textContent = entradaMinima || '--:--';
+            }
+            if (salidaEl) {
+                salidaEl.textContent = salidaMaxima || '--:--';
+            }
+        }
+        
+        // Actualizar fecha actual en zona horaria de Perú
         function actualizarFecha() {
             const ahora = new Date();
-            const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Lima' };
             const fechaStr = ahora.toLocaleDateString('es-PE', opciones);
             const fechaEl = document.getElementById('fechaActual');
             if (fechaEl) {
@@ -283,12 +365,46 @@
             }
         }
         
+        // Filtrar por fecha (hoy o ayer)
+        function filtrarPorFecha(opcion) {
+            const ahora = new Date();
+            // Obtener fecha en Perú
+            const fechaPeru = new Date(ahora.toLocaleString('en-US', { timeZone: 'America/Lima' }));
+            
+            let fecha;
+            if (opcion === 'hoy') {
+                fecha = fechaPeru;
+            } else if (opcion === 'ayer') {
+                fecha = new Date(fechaPeru);
+                fecha.setDate(fecha.getDate() - 1);
+            }
+            
+            const year = fecha.getFullYear();
+            const month = String(fecha.getMonth() + 1).padStart(2, '0');
+            const day = String(fecha.getDate()).padStart(2, '0');
+            const fechaStr = `${year}-${month}-${day}`;
+            
+            window.location.href = '/admin/control-personal?fecha=' + fechaStr;
+        }
+        
+        // Filtrar por fecha personalizada desde el calendario
+        function filtrarPorFechaPersonalizada() {
+            const fechaInput = document.getElementById('fechaFiltro');
+            if (fechaInput && fechaInput.value) {
+                window.location.href = '/admin/control-personal?fecha=' + fechaInput.value;
+            }
+        }
+        
         // Inicializar
         actualizarHora();
         actualizarFecha();
+        actualizarResumenDia();
         
         // Actualizar hora cada segundo
         setInterval(actualizarHora, 1000);
+        
+        // Actualizar resumen del día cada 5 segundos (por si se agregan nuevos registros)
+        setInterval(actualizarResumenDia, 5000);
     </script>
 </body>
 </html>

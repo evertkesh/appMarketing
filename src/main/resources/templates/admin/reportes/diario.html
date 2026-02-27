@@ -166,25 +166,38 @@
                 </div>
 
                 <!-- BOTÓN PDF -->
-                <div class="card-footer bg-white py-3 text-end">
+                <div class="card-footer bg-white py-3 d-flex justify-content-between align-items-center">
 
-                    <form th:action="@{/api/reportes/ganancias-por-fecha}"
-                          method="get"
-                          style="display:inline;">
+                    <div>
+                        <!-- Botón para exportar reporte total (todos los registros) -->
+                        <a href="/api/reportes/ganancias-pdf"
+                           target="_blank"
+                           class="btn btn-success fw-semibold">
+                            <i class="bi bi-file-earmark-pdf me-2"></i>
+                            Exportar Reporte Total (Todos)
+                        </a>
+                    </div>
 
-                        <input type="hidden"
-                               name="fecha"
-                               th:value="${fecha}"/>
+                    <div>
+                        <!-- Botón para exportar reporte de la fecha seleccionada -->
+                        <form th:action="@{/api/reportes/ganancias-por-fecha}"
+                              method="get"
+                              style="display:inline;">
 
-                        <button type="submit"
-                                class="btn btn-primary fw-semibold">
+                            <input type="hidden"
+                                   name="fecha"
+                                   th:value="${fecha}"/>
 
-                            <i class="bi bi-file-pdf me-2"></i>
-                            Descargar Reporte PDF
+                            <button type="submit"
+                                    class="btn btn-primary fw-semibold">
 
-                        </button>
+                                <i class="bi bi-file-pdf me-2"></i>
+                                Descargar Reporte de Esta Fecha
 
-                    </form>
+                            </button>
+
+                        </form>
+                    </div>
 
                 </div>
 

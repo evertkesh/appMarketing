@@ -1,6 +1,8 @@
 package appMarketing.controller;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -22,6 +24,8 @@ import appMarketing.entity.ReporteDiario;
 @RequestMapping("/admin/reportes")
 public class ReporteController {
 
+    private static final ZoneId PERU_ZONE = ZoneId.of("America/Lima");
+
     @Autowired
     private ReporteDIarioService reporteService;
 
@@ -32,49 +36,70 @@ public class ReporteController {
     public String reporteDiario(@RequestParam(required = false) LocalDate fecha,
                                Model model) {
         try {
-            LocalDate fechaFinal = fecha != null ? fecha : LocalDate.now();
+            // Usar fecha de Perú si no se especifica una fecha
+            LocalDate fechaFinal;
+            if (fecha != null) {
+                fechaFinal = fecha;
+            } else {
+                ZonedDateTime ahoraEnPeru = ZonedDateTime.now(PERU_ZONE);
+                fechaFinal = ahoraEnPeru.toLocalDate();
+            }
 
             model.addAttribute("active", "reportes"); 
             model.addAttribute("reporte", new ReporteDiario());
             
-            // Primero, intentar cargar reportes diarios
+            // Obtener reportes diarios de la fecha
             var reportesDiarios = reporteService.listarPorFecha(fechaFinal);
-            model.addAttribute("reportes", reportesDiarios != null ? reportesDiarios : java.util.Collections.emptyList());
-            model.addAttribute("totalGanancias", reporteService.calcularTotalGanancias(fechaFinal));
+            System.out.println("📊 Reportes diarios encontrados para " + fechaFinal + ": " + reportesDiarios.size());
             
-            // Si no hay reportes diarios, cargar servicios completados de la fecha
-            if (reportesDiarios == null || reportesDiarios.isEmpty()) {
-                var servicios = servicioService.listarTodos();
-                var serviciosFecha = servicios.stream()
-                    .filter(s -> s.getFechaCreacion() != null 
-                            && s.getFechaCreacion().toLocalDate().equals(fechaFinal)
-                            && s.getEstado() != null)
-                    .toList();
-                
-                System.out.println("Servicios encontrados para fecha " + fechaFinal + ": " + serviciosFecha.size());
-                
-                // Convertir servicios a ReporteDiario para mostrar en la tabla
-                var reportesDesdeServicios = serviciosFecha.stream().map(s -> {
-                    ReporteDiario r = new ReporteDiario();
-                    r.setFecha(fechaFinal);
-                    r.setServicio(s);
-                    r.setDescripcionTrabajo(s.getDescripcion());
-                    r.setHorasTrabajadas(0);
-                    r.setGananciaDia(s.getPrecioBase());
-                    r.setTotalGanancias(s.getPrecioBase());
-                    return r;
-                }).toList();
-                
-                model.addAttribute("reportes", reportesDesdeServicios);
-                
-                // Calcular total de servicios
-                var totalServicios = serviciosFecha.stream()
-                    .map(s -> s.getPrecioBase() != null ? s.getPrecioBase() : java.math.BigDecimal.ZERO)
-                    .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
-                
-                model.addAttribute("totalGanancias", totalServicios);
-                System.out.println("Total de ganancias: " + totalServicios);
+            // Obtener servicios de la fecha
+            var servicios = servicioService.listarTodos();
+            var serviciosFecha = servicios.stream()
+                .filter(s -> s.getFechaCreacion() != null 
+                        && s.getFechaCreacion().toLocalDate().equals(fechaFinal))
+                .toList();
+            
+            System.out.println("📋 Servicios encontrados para " + fechaFinal + ": " + serviciosFecha.size());
+            
+            // Crear lista combinada de reportes
+            java.util.List<ReporteDiario> reportesCombinados = new java.util.ArrayList<>();
+            
+            // Agregar reportes diarios si existen
+            if (reportesDiarios != null && !reportesDiarios.isEmpty()) {
+                reportesCombinados.addAll(reportesDiarios);
             }
+            
+            // Agregar servicios como reportes si no están en reportes diarios
+            if (!serviciosFecha.isEmpty()) {
+                for (var servicio : serviciosFecha) {
+                    // Verificar si este servicio ya tiene un reporte diario
+                    boolean yaExiste = reportesDiarios.stream()
+                        .anyMatch(r -> r.getServicio() != null && r.getServicio().getId().equals(servicio.getId()));
+                    
+                    if (!yaExiste) {
+                        ReporteDiario r = new ReporteDiario();
+                        r.setFecha(fechaFinal);
+                        r.setServicio(servicio);
+                        r.setDescripcionTrabajo(servicio.getDescripcion());
+                        r.setHorasTrabajadas(0);
+                        r.setGananciaDia(servicio.getPrecioBase());
+                        r.setTotalGanancias(servicio.getPrecioBase());
+                        reportesCombinados.add(r);
+                    }
+                }
+            }
+            
+            System.out.println("✅ Total de reportes combinados: " + reportesCombinados.size());
+            
+            model.addAttribute("reportes", reportesCombinados);
+            
+            // Calcular total de ganancias
+            var totalGanancias = reportesCombinados.stream()
+                .map(r -> r.getGananciaDia() != null ? r.getGananciaDia() : java.math.BigDecimal.ZERO)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+            
+            model.addAttribute("totalGanancias", totalGanancias);
+            System.out.println("💰 Total de ganancias: " + totalGanancias);
             
             model.addAttribute("fecha", fechaFinal);
             model.addAttribute("servicios", servicioService.listarTodos() != null ? servicioService.listarTodos() : java.util.Collections.emptyList());

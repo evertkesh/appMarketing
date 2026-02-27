@@ -1,6 +1,8 @@
 package appMarketing.controller;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +30,8 @@ import jakarta.servlet.http.HttpSession;
 @Controller
 @RequestMapping("/admin/asistencia")
 public class AsistenciaController {
+
+    private static final ZoneId PERU_ZONE = ZoneId.of("America/Lima");
 
     @Autowired
     private RegistroAsistenciaService asistenciaService;
@@ -73,7 +77,8 @@ public class AsistenciaController {
     @ResponseBody
     public ResponseEntity<Map<String, List<Map<String, Object>>>> obtenerPresentesEnTurno() {
         try {
-            LocalDate hoy = LocalDate.now();
+            ZonedDateTime ahoraEnPeru = ZonedDateTime.now(PERU_ZONE);
+            LocalDate hoy = ahoraEnPeru.toLocalDate();
             List<RegistroAsistencia> registros = registroAsistenciaRepository.obtenerHistorialHoy(hoy);
             
             // Filtrar solo los que tienen entrada pero no salida (presentes en turno)
