@@ -95,14 +95,33 @@ public class ReunionController {
                 }
             }
             
-            // Guardar la reunión
+            // Guardar la reunión (aquí se validará si existe duplicado)
             reunionService.organizarReunion(reunion);
             
             return "redirect:/admin/reuniones?success=creada";
             
+        } catch (IllegalArgumentException e) {
+            // Capturar la excepción de reunión duplicada
+            return "redirect:/admin/reuniones/nueva?error=" + java.net.URLEncoder.encode(e.getMessage(), java.nio.charset.StandardCharsets.UTF_8);
         } catch (Exception e) {
             e.printStackTrace();
-            return "redirect:/admin/reuniones/nueva?error=" + e.getMessage();
+            return "redirect:/admin/reuniones/nueva?error=" + java.net.URLEncoder.encode("Error al crear la reunión", java.nio.charset.StandardCharsets.UTF_8);
+        }
+    }
+
+    /**
+     * Endpoint POST para cancelar una reunión
+     */
+    @PostMapping("/{id}/cancelar")
+    public String cancelarReunion(@org.springframework.web.bind.annotation.PathVariable Long id) {
+        try {
+            reunionService.cancelarReunion(id);
+            return "redirect:/admin/reuniones?success=cancelada";
+        } catch (IllegalArgumentException e) {
+            return "redirect:/admin/reuniones?error=" + java.net.URLEncoder.encode(e.getMessage(), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "redirect:/admin/reuniones?error=" + java.net.URLEncoder.encode("Error al cancelar la reunión", java.nio.charset.StandardCharsets.UTF_8);
         }
     }
 

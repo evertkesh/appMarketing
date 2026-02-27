@@ -13,6 +13,21 @@
             <main class="main-content col-md-10 p-4">
                 <h2 class="mb-4 fw-bold text-dark">Gestión de Reuniones</h2>
                 
+                <!-- Mensajes de éxito -->
+                <div th:if="${param.success}" class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    <span th:if="${param.success[0] == 'creada'}">Reunión organizada exitosamente.</span>
+                    <span th:if="${param.success[0] == 'cancelada'}">Reunión cancelada exitosamente.</span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                
+                <!-- Mensajes de error -->
+                <div th:if="${param.error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <span th:text="${param.error[0]}">Error al procesar la solicitud.</span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3">
                         <h5 class="mb-0 fw-bold"><i class="bi bi-calendar-event me-2"></i>Reuniones Programadas</h5>

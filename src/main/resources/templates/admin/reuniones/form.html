@@ -17,6 +17,13 @@
                 
                 <h2 class="fw-bold mb-4">Crear Nueva Reunión</h2>
                 
+                <!-- Mensajes de error -->
+                <div th:if="${param.error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <strong>Error:</strong> <span th:text="${param.error[0]}">Error al procesar la solicitud.</span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                
                 <div class="card border-0 shadow-sm">
                     <div class="card-body p-4">
                         <form th:action="@{/admin/reuniones/organizar}" th:object="${reunion}" method="post">
